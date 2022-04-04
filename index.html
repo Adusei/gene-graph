@@ -9,6 +9,19 @@
   <!--<script src="../../src/packages/react-force-graph-3d/dist/react-force-graph-3d.js"></script>-->
 
   <script src="https://vasturiano.github.io/react-force-graph/example/datasets/random-data.js"></script>
+
+
+  <script>
+    // function download(content, fileName, contentType) {
+    //     var a = document.createElement("a");
+    //     var file = new Blob([content], {type: contentType});
+    //     a.href = URL.createObjectURL(file);
+    //     a.download = fileName;
+    //     a.click();
+    // }
+    // download(JSON.stringify(genRandomTree(50)), 'sampleGraph.json', 'text/plain');
+
+    </script>
 </head>
 
 <body>
@@ -17,7 +30,7 @@
   <script type="text/jsx">
     const GROUPS = 12;
     const gData = genRandomTree();
-
+    console.log('gData:', gData)
     ReactDOM.render(
       <ForceGraph3D
         graphData={gData}
