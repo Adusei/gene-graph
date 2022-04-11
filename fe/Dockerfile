@@ -1,16 +1,17 @@
-FROM node:16-alpine
+FROM node:17-alpine
+# set working direction
+WORKDIR /app
+# add `/app/node_modules/.bin` to $PATH
+ENV PATH /app/node_modules/.bin:$PATH
 
-ARG NODE_ENV=development
-
-ENV NODE_PATH=/srv/app/node_modules
-WORKDIR /srv/app
+# install application dependencies
 COPY package.json ./
+COPY package-lock.json ./
 
-# RUN npm install
+RUN npm i
 
-COPY . /srv/app
+# add app
+COPY . ./app
 
-EXPOSE 3000
-EXPOSE 35729
-
+# start app
 CMD ["npm", "start"]

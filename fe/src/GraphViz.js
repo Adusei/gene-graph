@@ -18,6 +18,7 @@ export class GraphViz extends Component {
   }
 
   componentDidMount () {
+    // to do - use the backend url from docker compose
     fetch('http://localhost:8000/sample_data')
       .then(res => res.json())
       .then(d => {
@@ -38,11 +39,7 @@ export class GraphViz extends Component {
 
   return (
       <div>
-      graph viz baby!
-
-      <ForceGraph3D
-      graphData={gData} />
-
+      <ForceGraph3D graphData={gData} />
       </div>
     )
   }
