@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import './App.css';
 
-import ReactSearchBox from "react-search-box";
+// import ReactSearchBox from "react-search-box";
 
 
 import GraphViz from './GraphViz'
@@ -32,12 +32,12 @@ function App() {
   ]
 
   return ([
-    <ReactSearchBox
-       placeholder="Placeholder"
-       value="Doe"
-       data={data}
-       callback={(record) => console.log(record)}
-     />,
+    // <ReactSearchBox
+    //    placeholder="Placeholder"
+    //    value="Doe"
+    //    data={data}
+    //    callback={(record) => console.log(record)}
+    //  />,
     <GraphViz/>
   ]
   );
