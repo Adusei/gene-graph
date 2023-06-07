@@ -1,46 +1,58 @@
 version: "2.1"
 
 services:
-  # db:
-  #   image: postgres:12-alpine
-  #   environment:
-  #     - POSTGRES_PASSWORD=password
-  #   ports:
-  #     - "5432:5432"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - backend
-  backend:
-    build: ./backend
-    environment:
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    # depends_on:
-    #   db:
-    #     condition: service_healthy
-    networks:
-      - backend
-      - frontend
-  frontend:
+  jupyter:
     build:
-      context: ./fe
-      args:
-        NODE_ENV: "development"
-    volumes:
-      - ./fe:/app
+      context: notebook
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-      - "35729:35729"
-    networks:
-      - frontend
+      - 8889:8888
+    volumes:
+      - ./notebook/GeneGraph.ipynb:/home/jovyan/work/GeneGraph.ipynb
+      - ./unzipped_data:/home/jovyan/work/unzipped_data
+      - ./zipped_data:/home/jovyan/work/zipped_data
 
-networks:
-  backend:
-  frontend:
+# services:
+#   db:
+#     image: postgres:12-alpine
+#     environment:
+#       - POSTGRES_PASSWORD=password
+#     ports:
+#       - "5432:5432"
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 5
+#     networks:
+#       - backend
+#   backend:
+#     build: ./backend
+#     environment:
+#       - POSTGRES_PASSWORD=password
+#     volumes:
+#       - ./backend:/app
+#     ports:
+#       - "8000:8000"
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     networks:
+#       - backend
+#       - frontend
+#   frontend:
+#     build:
+#       context: ./fe
+#       args:
+#         NODE_ENV: "development"
+#     volumes:
+#       - ./fe:/app
+#     ports:
+#       - "3000:3000"
+#       - "35729:35729"
+#     networks:
+#       - frontend
+#
+# networks:
+#   backend:
+#   frontend:

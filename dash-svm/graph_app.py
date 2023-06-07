@@ -6,7 +6,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 
 import dash_cytoscape as cyto
-import utils.dash_reusable_components as drc
+# import utils.dash_reusable_components as drc
 import pandas as pd
 
 app = dash.Dash(__name__)
@@ -16,6 +16,9 @@ server = app.server
 
 # ###################### DATA PREPROCESSING ######################
 # Load data
+
+# note get the MESH file from et_df('CTD_chemicals_diseases') and filter to
+# whatever disease you need
 
 def get_color_scale(df_len):
     from colour import Color
@@ -131,17 +134,8 @@ app.layout = html.Div([
                    ],
                    value='D010300'
                 ),
-                drc.NamedDropdown(
-                    name='Layout',
+                dcc.Dropdown(
                     id='dropdown-layout',
-                    options=drc.DropdownOptionsList(
-                        'random',
-                        'grid',
-                        'circle',
-                        'concentric',
-                        'breadthfirst',
-                        'cose'
-                    ),
                     value='circle',
                     clearable=False
                 ),
