@@ -1,0 +1,2 @@
+,loss,tp,fp,tn,fn,accuracy,precision,recall,auc,prc,parent_disease,gene_count,show_plots,use_class_weights,oversample,model_type
+0,0.24619556963443756,80.0,1205.0,7226.0,8.0,0.8576123714447021,0.06225680932402611,0.9090909361839294,0.9437648057937622,0.14225012063980103,MESH:D019636,20,False,True,False,DNN

@@ -8,7 +8,7 @@ services:
     ports:
       - 8889:8888
     volumes:
-      - ./notebook/GeneGraph.ipynb:/home/jovyan/work/GeneGraph.ipynb
+      - ./notebook/:/home/jovyan/work/
       - ./unzipped_data:/home/jovyan/work/unzipped_data
       - ./zipped_data:/home/jovyan/work/zipped_data
 
@@ -26,33 +26,33 @@ services:
 #       retries: 5
 #     networks:
 #       - backend
-  backend:
-    build: ./backend
-    environment:
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8011:8011"
-    # depends_on:
-    #   db:
-    #     condition: service_healthy
-    networks:
-      - backend
-      - frontend
-  frontend:
-    build:
-      context: ./fe
-      args:
-        NODE_ENV: "development"
-    volumes:
-      - ./fe:/app
-    ports:
-      - "3000:3000"
-      - "35729:35729"
-    networks:
-      - frontend
-
-networks:
-  backend:
-  frontend:
+#   backend:
+#     build: ./backend
+#     environment:
+#       - POSTGRES_PASSWORD=password
+#     volumes:
+#       - ./backend:/app
+#     ports:
+#       - "8011:8011"
+#     # depends_on:
+#     #   db:
+#     #     condition: service_healthy
+#     networks:
+#       - backend
+#       - frontend
+#   frontend:
+#     build:
+#       context: ./fe
+#       args:
+#         NODE_ENV: "development"
+#     volumes:
+#       - ./fe:/app
+#     ports:
+#       - "3000:3000"
+#       - "35729:35729"
+#     networks:
+#       - frontend
+#
+# networks:
+#   backend:
+#   frontend:
