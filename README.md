@@ -1,5 +1,9 @@
 # Gene Graph
 
+## TO DO
+- Check the balanced data set stuff works and creates even samples when k_neighbors = 5
+
+
 https://medium.com/p/a96d6997fb6/edit
 
 
