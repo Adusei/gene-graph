@@ -1,0 +1,2 @@
+DiseaseName,ChemicalName,DiseaseID,InferenceScore,DirectEvidence,ABCB1,label
+Epilepsy,"10,11-dihydro-10-hydroxycarbamazepine",MESH:D004827,4.35,therapeutic,True,4.35
