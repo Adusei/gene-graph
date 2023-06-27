@@ -2,7 +2,7 @@ import os
 import gzip
 import shutil
 import requests
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,8 @@ class DiseaseClassifier:
         show_plots: bool,
         use_class_weights: bool,
         oversample: bool,
-        classification: str = 'binary'
+        classification: str = 'binary',
+        use_gene_inference_score: bool = False
     ) -> None:
         """
         Initialize the DiseaseClassifier class.
@@ -61,7 +62,8 @@ class DiseaseClassifier:
             use_class_weights: Flag indicating whether to use class weights or not.
             oversample: Flag indicating whether to perform oversampling or not.
             classification: The type of classification, default is 'binary'.
-
+            use_gene_inference_score: if True we use the score for the features,
+            otherwise we use onehot encoding to represent a link exists
         Raises:
             Exception: If both use_class_weights and oversample are True.
 
@@ -79,7 +81,7 @@ class DiseaseClassifier:
         self.classification = classification
         self.top_n_genes = self.get_genes()
         self.model_type = 'DNN'
-
+        self.use_gene_inference_score = use_gene_inference_score
         if self.use_class_weights and self.oversample:
             raise Exception('Need to either use class weights OR oversample')
 
@@ -97,7 +99,7 @@ class DiseaseClassifier:
 
         return top_n_genes
 
-    def prep_training_data(self, one_hot: bool) -> pd.DataFrame:
+    def prep_training_data(self) -> pd.DataFrame:
         """
         Prepare the training data for the DiseaseClassifier by taking the
         input dataframe and pivoting it such that we onehot encode the genes
@@ -117,18 +119,18 @@ class DiseaseClassifier:
 
         evidence_df = self.input_df.loc[self.input_df['DirectEvidence'].notnull()][['ChemicalName', 'DiseaseName', 'DirectEvidence', 'DiseaseID']]
 
-        if one_hot:
-            dummy_df = pd.get_dummies(gene_df, prefix='', prefix_sep='',columns=['InferenceGeneSymbol'])
-
-            gb_df = dummy_df.groupby(['DiseaseName', 'ChemicalName', 'DiseaseID']).agg({np.max}).reset_index()
-            gb_df.columns = gb_df.columns.droplevel(1)
-
-        else:
+        if self.use_gene_inference_score:
             gb_df = gene_df.pivot_table(index=['DiseaseName', 'ChemicalName', 'DiseaseID'],
                               columns='InferenceGeneSymbol',
                               values='InferenceScore',
                               aggfunc='max',
                               fill_value=0).reset_index()
+        else:
+            dummy_df = pd.get_dummies(gene_df, prefix='', prefix_sep='',columns=['InferenceGeneSymbol'])
+
+            gb_df = dummy_df.groupby(['DiseaseName', 'ChemicalName', 'DiseaseID']).agg({np.max}).reset_index()
+            gb_df.columns = gb_df.columns.droplevel(1)
+
 
         merged_df = gb_df.merge(evidence_df, on=['ChemicalName', 'DiseaseName', 'DiseaseID'])
 
@@ -353,7 +355,7 @@ class DiseaseClassifier:
 
         return train_df
 
-    def main(self) -> Tuple[Dict[str, Any], Any]:
+    def main(self) -> Tuple[Dict[str, Any], Sequential]:
         """Run the main process.
 
         Returns:
