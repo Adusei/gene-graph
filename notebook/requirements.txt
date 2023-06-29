@@ -4,4 +4,4 @@ matplotlib
 tensorflow
 ctd-python
 mock
-imblearn
+imblearn==0.10.1

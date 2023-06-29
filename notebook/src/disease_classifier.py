@@ -106,10 +106,6 @@ class DiseaseClassifier:
         or add the inference score of the gene as the feature value for the
         observation
 
-        Args:
-            one_hot: Use the one hot encodings otherwise it will fill the values
-            of the gene features with the inference score
-
         Returns:
             DataFrame: The prepared training data.
         """
@@ -131,13 +127,7 @@ class DiseaseClassifier:
             gb_df = dummy_df.groupby(['DiseaseName', 'ChemicalName', 'DiseaseID']).agg({np.max}).reset_index()
             gb_df.columns = gb_df.columns.droplevel(1)
 
-
         merged_df = gb_df.merge(evidence_df, on=['ChemicalName', 'DiseaseName', 'DiseaseID'])
-
-        # merged_df['label'] = np.where(merged_df['DirectEvidence'] == 'marker/mechanism',
-        #                  merged_df['InferenceScore'] * -1,
-        #                  merged_df['InferenceScore'])
-
 
         return merged_df
 
@@ -152,14 +142,18 @@ class DiseaseClassifier:
             accuracy: Accuracy of the model.
 
         Returns:
-            AUC score
-
-        Raises:
-            NotImplementedError: If `classification` is 'categorical'.
+            AUC score or Zero if classification = categorical
 
         """
         if self.classification == 'categorical':
-            raise NotImplementedError("Subclass categorical classifications and override this method.")
+            cm = confusion_matrix(y_test.argmax(axis=1), predicted_values.argmax(axis=1))
+
+            labels = ['Not Relevant', 'Therapeutic', 'Negative']
+            disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+
+            disp.plot(cmap=plt.cm.Blues) # xticks_rotation=45
+            return 0
+            # raise NotImplementedError("Subclass categorical classifications and override this method.")
 
         auc_score = roc_auc_score(y_test, predicted_values)
 
@@ -259,7 +253,32 @@ class DiseaseClassifier:
         if self.classification == 'categorical':
             raise Exception('Oversampling is not supported with categorical classifications.')
 
-        return SMOTE(k_neighbors=k_neighbors).fit_resample(X_train, y_train)
+        bool_train_labels = y_train != 0
+
+        pos_features = X_train[bool_train_labels]
+        neg_features = X_train[~bool_train_labels]
+
+        pos_labels = y_train[bool_train_labels]
+        neg_labels = y_train[~bool_train_labels]
+
+        ids = np.arange(len(pos_features))
+        choices = np.random.choice(ids, len(neg_features))
+
+        res_pos_features = pos_features.iloc[choices, :]
+        res_pos_labels = pos_labels.values[choices] # pos_labels.array(choices)
+
+        # res_pos_features.shape
+
+        resampled_features = np.concatenate([res_pos_features, neg_features], axis=0)
+        resampled_labels = np.concatenate([res_pos_labels, neg_labels], axis=0)
+
+        order = np.arange(len(resampled_labels))
+        np.random.shuffle(order)
+        resampled_features = resampled_features[order]
+        resampled_labels = resampled_labels[order]
+
+        return resampled_features, resampled_labels
+
     def train_model(self, train_df: pd.DataFrame) -> Tuple[List[dict], Sequential, float, Dict[str, float]]:
         """Train a model using the provided training dataframe.
 
@@ -285,7 +304,7 @@ class DiseaseClassifier:
         X_train, X_test, y_train, y_test = train_test_split(features, labels, random_state=0, train_size=TRAIN_SIZE)
 
         if self.oversample:
-            X_train, y_train = self.over_sample(X_train, y_train, 5)
+            X_train, y_train = self.over_sample(X_train, y_train, 2)
 
         callbacks = []
         if self.stop_early:

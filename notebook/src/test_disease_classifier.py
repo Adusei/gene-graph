@@ -191,7 +191,7 @@ class DiseaseClassifierTest(unittest.TestCase):
 
         }
         expected_df = pd.DataFrame(expected_data)
-        
+
         pd.testing.assert_frame_equal(result_df, expected_df)
 
     @patch('disease_classifier.DiseaseClassifier.get_genes')
@@ -265,6 +265,7 @@ class DiseaseClassifierTest(unittest.TestCase):
         num_positive_labels = np.sum(resampled_labels)
         num_negative_labels = len(resampled_labels) - num_positive_labels
         self.assertEqual(num_positive_labels, num_negative_labels)
+
     @patch('disease_classifier.DiseaseClassifier.get_genes')
     def test_train_model(self, mock_get_genes):
         mock_get_genes.return_value = ['GeneA', 'GeneB', 'GeneC']
@@ -275,8 +276,7 @@ class DiseaseClassifierTest(unittest.TestCase):
         train_df = pd.DataFrame({
             'feature1': [1, 2, 3, 4, 5],
             'feature2': [6, 7, 8, 9, 10],
-            'binary_label': [0, 1, 1, 0, 1],
-            'categorical_label': ['A', 'B', 'B', 'A', 'C']
+            'binary_label': [0, 1, 1, 0, 1]
         })
         # Call the train_model method
         history, model, auc, metrics_info = classifier.train_model(train_df)
