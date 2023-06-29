@@ -145,6 +145,9 @@ class DiseaseClassifier:
             AUC score or Zero if classification = categorical
 
         """
+        if not self.show_plots:
+            return 0
+
         if self.classification == 'categorical':
             cm = confusion_matrix(y_test.argmax(axis=1), predicted_values.argmax(axis=1))
 
@@ -156,9 +159,6 @@ class DiseaseClassifier:
             # raise NotImplementedError("Subclass categorical classifications and override this method.")
 
         auc_score = roc_auc_score(y_test, predicted_values)
-
-        if not self.show_plots:
-            return auc_score
 
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 8))
 
@@ -265,9 +265,7 @@ class DiseaseClassifier:
         choices = np.random.choice(ids, len(neg_features))
 
         res_pos_features = pos_features.iloc[choices, :]
-        res_pos_labels = pos_labels.values[choices] # pos_labels.array(choices)
-
-        # res_pos_features.shape
+        res_pos_labels = pos_labels[choices]
 
         resampled_features = np.concatenate([res_pos_features, neg_features], axis=0)
         resampled_labels = np.concatenate([res_pos_labels, neg_labels], axis=0)

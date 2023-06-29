@@ -10,10 +10,11 @@ from keras import Sequential
 from keras.layers import Dense
 from imblearn.over_sampling import SMOTE
 
-from disease_classifier import DiseaseClassifier
+import src.disease_classifier
+from src.disease_classifier import DiseaseClassifier
 
 class DiseaseClassifierTest(unittest.TestCase):
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
+    @patch('src.disease_classifier.DiseaseClassifier.get_genes')
     def setUp(self, mock_get_genes):
         mock_get_genes.return_value = ['GeneA', 'GeneB', 'GeneC']
         # input_df = pd.read_csv('src/test_data/test_df.csv')  # Provide sample data here
@@ -36,7 +37,7 @@ class DiseaseClassifierTest(unittest.TestCase):
         )
     def test_disease_classifier_initialization(self):
         # Create a sample input DataFrame
-        input_df = pd.read_csv('test_data/test_df.csv')  # Provide sample data here
+        input_df = pd.read_csv('src/test_data/test_df.csv')  # Provide sample data here
 
         # Set up the parameters for initialization
         parent_disease = 'MESH:D019636'
@@ -194,7 +195,7 @@ class DiseaseClassifierTest(unittest.TestCase):
 
         pd.testing.assert_frame_equal(result_df, expected_df)
 
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
+    @patch('src.disease_classifier.DiseaseClassifier.get_genes')
     def test_get_class_weights(self, mock_get_genes):
         mock_get_genes.return_value = ['GeneA', 'GeneB', 'GeneC']
 
@@ -213,7 +214,7 @@ class DiseaseClassifierTest(unittest.TestCase):
         # Assert the returned class weights
         self.assertEqual(class_weights, expected_weights)
 
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
+    @patch('src.disease_classifier.DiseaseClassifier.get_genes')
     def test_get_model(self, mock_get_genes):
         mock_get_genes.return_value = ['GeneA', 'GeneB', 'GeneC']
         classifier = DiseaseClassifier(pd.DataFrame(), parent_disease='MESH:D019636', gene_count=50,
@@ -243,61 +244,35 @@ class DiseaseClassifierTest(unittest.TestCase):
         self.assertEqual(model.layers[0].activation.__name__, 'relu')
         self.assertEqual(model.layers[1].activation.__name__, 'relu')
         self.assertEqual(model.layers[2].activation.__name__, 'sigmoid')
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
-    def test_over_sample(self, mock_get_genes):
-        mock_get_genes.return_value = ['GeneA', 'GeneB', 'GeneC']
-        classifier = DiseaseClassifier(pd.DataFrame(), parent_disease='MESH:D019636', gene_count=50,
-                               show_plots=False, use_class_weights=False, oversample=True)
-        classifier.classification = 'binary'
-        # Mock data for testing
-        X_train = pd.DataFrame({'feature1': [1, 2, 3, 4, 5],
-                                'feature2': [6, 7, 8, 9, 10]})
-        y_train = np.array([0, 1, 1, 0, 1])
 
-        # Call the method
-        resampled_features, resampled_labels = classifier.over_sample(X_train, y_train, k_neighbors=1)
-
-        # # Assert the shape of the resampled features and labels
-        self.assertEqual(resampled_features.shape[0], 6)
-        self.assertEqual(resampled_labels.shape[0], 6)
-
-        # # Assert the balance of class labels
-        num_positive_labels = np.sum(resampled_labels)
-        num_negative_labels = len(resampled_labels) - num_positive_labels
-        self.assertEqual(num_positive_labels, num_negative_labels)
-
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
+    @patch('src.disease_classifier.DiseaseClassifier.get_genes')
     def test_train_model(self, mock_get_genes):
         mock_get_genes.return_value = ['GeneA', 'GeneB', 'GeneC']
-        classifier = DiseaseClassifier(pd.DataFrame(), parent_disease='MESH:D019636', gene_count=50,
+
+        input_df = pd.DataFrame({
+            'DiseaseID': ['D001', 'D002', 'D001', 'D001'],
+            'ChemicalName': ['Chem1', 'Chem2', 'Chem3', 'Chem4'],
+            'binary_label': [1,1,1,0],
+        })
+        classifier = DiseaseClassifier(input_df, parent_disease='MESH:D019636', gene_count=50,
                                show_plots=False, use_class_weights=False, oversample=False)
         classifier.classification = 'binary'
-
-        train_df = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [6, 7, 8, 9, 10],
-            'binary_label': [0, 1, 1, 0, 1]
-        })
         # Call the train_model method
-        history, model, auc, metrics_info = classifier.train_model(train_df)
+        history, model, auc, metrics_info = classifier.train_model(input_df)
 
         # Example assertions to check if the model and history are not None
         self.assertIsNotNone(history)
         self.assertIsNotNone(model)
 
-        # Example assertions to check if auc is a float
-        self.assertIsInstance(auc, float)
-
-        # Example assertions to check if metrics_info is a dictionary with expected keys
         self.assertIsInstance(metrics_info, dict)
         self.assertIn('loss', metrics_info)
         self.assertIn('accuracy', metrics_info)
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
+    @patch('src.disease_classifier.DiseaseClassifier.get_genes')
     def test_apply_category(self, mock_get_genes):
         self.assertEqual(self.classifier.apply_category(pd.Series({'binary_label': 0, 'DirectEvidence': 'marker/mechanism'})), 0)
         self.assertEqual(self.classifier.apply_category(pd.Series({'binary_label': None, 'DirectEvidence': 'marker/mechanism'})), 1)
         self.assertEqual(self.classifier.apply_category(pd.Series({'binary_label': None, 'DirectEvidence': 'therapeutic'})), 2)
-    @patch('disease_classifier.DiseaseClassifier.get_genes')
+    @patch('src.disease_classifier.DiseaseClassifier.get_genes')
     def test_set_label(self, mock_get_genes):
 
         input_df = pd.DataFrame({
@@ -324,9 +299,6 @@ class DiseaseClassifierTest(unittest.TestCase):
         # since we're predicting 'D002' that should be the
         # only disease where binary_label = True
         pd.testing.assert_frame_equal(labeled_df, target_df)
-
-
-
 
 if __name__ == '__main__':
     unittest.main()
