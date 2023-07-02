@@ -59,16 +59,30 @@ class DiseaseClassifier:
         show_feature_importance: bool = False
     ) -> None:
         """
-        Initialize the DiseaseClassifier class.
+        Initialize the DiseaseClassifier class by getting the target dieseases
+        based on the "parent disease" that is passed as an input. For example
+        passing in neurodegenerative disease will get Parkinson Alzheiemers and
+        so an.  This gives the algorithm significantly more positive labels to
+        train against.
+
+        The algorithm also accepts "gene count" which will determine the number
+        of featuers to used in the classifier based on the N top most frequently
+        seen genes in the dataset.
 
         Args:
-            input_df: The input dataframe containing the data for classification.
-            parent_disease: The parent disease for which classification is performed.
-            gene_count: The number of genes to consider for classification.
+            input_df: The input dataframe containing the raw
+            data from the Chemical -> Gene -> Disease data - use
+            ctd.get_data('ChemicalDiseaseInteractions') to pull this
+            parent_disease: The parent disease for which classification is
+            performed.  All children of this disease are also market as positive
+            labels.
+            gene_count: The number of genes ( or features ) to consider
+            for classification based on frequency in the dataset
             show_plots: Flag indicating whether to show plots or not.
-            use_class_weights: Flag indicating whether to use class weights or not.
-            oversample: Flag indicating whether to perform oversampling or not.
-            classification: The type of classification, default is 'binary'.
+            use_class_weights: Flag indicating whether to use class weights.
+            oversample: Flag indicating whether to perform oversampling.
+            classification: The type of classification, default is 'binary' but
+            'categorical' can be used as well.
             use_gene_inference_score: if True we use the score for the features,
             otherwise we use onehot encoding to represent a link exists
         Raises:
@@ -112,7 +126,7 @@ class DiseaseClassifier:
         Prepare the training data for the DiseaseClassifier by taking the
         input dataframe and pivoting it such that we onehot encode the genes
         or add the inference score of the gene as the feature value for the
-        observation
+        observation.
 
         Returns:
             DataFrame: The prepared training data.
@@ -141,7 +155,10 @@ class DiseaseClassifier:
 
     def plot_results(self, history, predicted_values, y_test, accuracy) -> float:
         """
-        Plot the results of the model's performance.
+        Plot results of
+            -  loss / accuracy over the epochs performed
+            -  ROC Curve if it's a binary classifier
+            -  Confusion Matrix
 
         Args:
             history: Training history of the model.
@@ -162,7 +179,7 @@ class DiseaseClassifier:
             labels = ['Not Relevant', 'Therapeutic', 'Negative']
             disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
 
-            disp.plot(cmap=plt.cm.Blues) # xticks_rotation=45
+            disp.plot(cmap=plt.cm.Blues)
             return 0
             # raise NotImplementedError("Subclass categorical classifications and override this method.")
 
@@ -200,7 +217,8 @@ class DiseaseClassifier:
 
     def get_class_weights(self, labels: pd.Series) -> Dict:
         """
-        Determine the weights to assign to each class based on the distribution of classes.
+        Determine the weights to assign to each class based on the distribution\
+        of classes.
 
         Args:
             labels: A pandas Series containing the class labels.
@@ -222,12 +240,19 @@ class DiseaseClassifier:
 
     def get_model(self, input_shape: int, output_shape: int) -> Sequential:
         """
-        Create and compile a neural network model.
+        Create and compile a model.  If using a DNN as the model_type
+        we use a simple two layer network model.  Otherwise we use a linear
+        model.
+
+        We compile the loss function as either binary_crossentropy or
+        categorical_crossentropy and use the metrics defined at the topic of
+        the file -- these are the sample metrics that are return in the
+        model_metrics object from the main class of the algorithm.
 
         Args:
-            input_shape: The input shape of the model.
-            output_shape: The output shape of the model.
-
+            input_shape: The input shape of the model - the number of features
+            output_shape: The output shape of the model - i.e. 1 if a binary
+            classifier else, the length of the target class.
         Returns:
             The compiled neural network model.
 
@@ -239,7 +264,7 @@ class DiseaseClassifier:
             model.add(Dense(6, input_dim=input_shape, activation='relu'))
             model.add(Dense(output_shape, activation='sigmoid'))
         elif self.model_type == 'LINEAR':
-            model.add(Dense(1, activation='linear', input_shape=(input_shape,)))
+            model.add(Dense(output_shape, activation='linear', input_shape=(input_shape,)))
 
         model.compile(loss=self.classification + '_crossentropy', optimizer='adam', metrics=METRICS)
 
@@ -291,12 +316,23 @@ class DiseaseClassifier:
     def train_model(self, train_df: pd.DataFrame) -> Tuple[List[dict], Sequential, float, Dict[str, float]]:
         """Train a model using the provided training dataframe.
 
+        If usign a categorical classification, we onehot encode each class
+        as it's own binary label.
+
+        We then get the model ( DNN or Linear ) get the train test split and
+        apply some sort of oversampling technique.
+
+        Finally, plot the results of the model run to understand the performance
+        over each epoch, the AUC and the confusion matrix.
+
         Args:
             train_df: The training dataframe.
 
         Returns:
-            A tuple containing the model history, trained model, AUC score, and dictionary of metrics.
-
+            A tuple containing:
+            - The model history
+            - Trained model
+            - AUC score
         """
 
         gene_columns = train_df.columns.intersection(self.top_n_genes)
@@ -389,8 +425,7 @@ class DiseaseClassifier:
         return train_df
 
     def main(self) -> Tuple[Dict[str, Any], Sequential]:
-        """Run the main process.
-
+        """Run the main process which preps the data, sets labels and trains the model
         Returns:
             A tuple containing a dictionary of model metrics and the trained model.
 
