@@ -1,18 +1,23 @@
 import os
 import gzip
 import shutil
+import warnings
 import requests
 from typing import List, Dict, Tuple, Any
 
 import numpy as np
 import pandas as pd
+import eli5
+
+from numba import NumbaDeprecationWarning
+warnings.filterwarnings("ignore", category=NumbaDeprecationWarning)
+
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' ## TO DO set in docker
 import tensorflow as tf
 from keras import Sequential, metrics
 from keras.layers import Input, Dense, BatchNormalization, LSTM, Embedding, Bidirectional, Normalization, Conv1D, Dropout, MaxPool2D, MaxPooling1D, Flatten
 from keras.models import Model
-from imblearn.over_sampling import SMOTE
 
 import matplotlib.pyplot as plt
 
@@ -23,7 +28,7 @@ from sklearn.preprocessing import OneHotEncoder
 from ctd.utils import get_disease_hierarchy
 
 
-VERBOSE=False
+VERBOSE=0
 EPOCHS=25
 TRAIN_SIZE=.75
 
@@ -49,7 +54,9 @@ class DiseaseClassifier:
         use_class_weights: bool,
         oversample: bool,
         classification: str = 'binary',
-        use_gene_inference_score: bool = False
+        model_type: str = 'DNN',
+        use_gene_inference_score: bool = False,
+        show_feature_importance: bool = False
     ) -> None:
         """
         Initialize the DiseaseClassifier class.
@@ -80,8 +87,9 @@ class DiseaseClassifier:
         self.oversample = oversample
         self.classification = classification
         self.top_n_genes = self.get_genes()
-        self.model_type = 'DNN'
+        self.model_type = model_type
         self.use_gene_inference_score = use_gene_inference_score
+
         if self.use_class_weights and self.oversample:
             raise Exception('Need to either use class weights OR oversample')
 
@@ -226,15 +234,18 @@ class DiseaseClassifier:
         """
         model = Sequential()
 
-        model.add(Dense(60, input_dim=input_shape, activation='relu'))
-        model.add(Dense(6, input_dim=input_shape, activation='relu'))
-        model.add(Dense(output_shape, activation='sigmoid'))
+        if self.model_type == 'DNN':
+            model.add(Dense(60, input_dim=input_shape, activation='relu'))
+            model.add(Dense(6, input_dim=input_shape, activation='relu'))
+            model.add(Dense(output_shape, activation='sigmoid'))
+        elif self.model_type == 'LINEAR':
+            model.add(Dense(1, activation='linear', input_shape=(input_shape,)))
 
         model.compile(loss=self.classification + '_crossentropy', optimizer='adam', metrics=METRICS)
 
         return model
 
-    def over_sample(self, X_train: pd.DataFrame, y_train: np.ndarray, k_neighbors: int) -> Tuple[np.ndarray, np.ndarray]:
+    def over_sample(self, X_train: pd.DataFrame, y_train: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perform oversampling on the training data to balance the classes.
 
@@ -249,10 +260,8 @@ class DiseaseClassifier:
             Exception: If the classification type is 'categorical'.
 
         """
-
         if self.classification == 'categorical':
-            raise Exception('Oversampling is not supported with categorical classifications.')
-
+            raise Exception('over sampling not supported with categorical classifications')
         bool_train_labels = y_train != 0
 
         pos_features = X_train[bool_train_labels]
@@ -265,7 +274,9 @@ class DiseaseClassifier:
         choices = np.random.choice(ids, len(neg_features))
 
         res_pos_features = pos_features.iloc[choices, :]
-        res_pos_labels = pos_labels[choices]
+        res_pos_labels = pos_labels.values[choices] # pos_labels.array(choices)
+
+        res_pos_features.shape
 
         resampled_features = np.concatenate([res_pos_features, neg_features], axis=0)
         resampled_labels = np.concatenate([res_pos_labels, neg_labels], axis=0)
@@ -302,7 +313,7 @@ class DiseaseClassifier:
         X_train, X_test, y_train, y_test = train_test_split(features, labels, random_state=0, train_size=TRAIN_SIZE)
 
         if self.oversample:
-            X_train, y_train = self.over_sample(X_train, y_train, 2)
+            X_train, y_train = self.over_sample(X_train, y_train)
 
         callbacks = []
         if self.stop_early:
@@ -332,6 +343,11 @@ class DiseaseClassifier:
         metrics_info = dict(zip(model_keys, model_metrics))
 
         auc = self.plot_results(history, predicted_values, y_test, metrics_info.get('accuracy'))
+
+        if self.model_type == 'LINEAR':
+            weights = model.get_weights()[0]
+            weights = np.abs(weights)
+            metrics_info['feature_importance'] = dict(zip(X_train.columns, weights))
 
         return history, model, auc, metrics_info
 
@@ -391,3 +407,22 @@ class DiseaseClassifier:
         model_metrics['model_type'] = self.model_type
 
         return model_metrics, model
+
+
+if __name__ == '__main__':
+    # from src.disease_classifier import DiseaseClassifier
+    from disease_classifier import DiseaseClassifier
+    from ctd import get_data
+    input_df = get_data('ChemicalDiseaseInteractions')
+
+    kw = {
+        'input_df': input_df,
+        'parent_disease': 'MESH:D019636', # neurodegenerative diseases
+        'gene_count': 10,
+        'show_plots': True,
+        'use_class_weights': False,
+        'oversample': False,
+        'show_feature_importance': True
+    }
+    dc = DiseaseClassifier(**kw)
+    dc_mm, model = dc.main()
