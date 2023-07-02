@@ -1,2 +1,7 @@
-zipped_data/*
-unzipped_data/*
+# Ignore Python byte-compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+notebook/final-output/*
