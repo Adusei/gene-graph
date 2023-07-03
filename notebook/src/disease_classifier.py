@@ -9,10 +9,6 @@ import numpy as np
 import pandas as pd
 import eli5
 
-from numba import NumbaDeprecationWarning
-warnings.filterwarnings("ignore", category=NumbaDeprecationWarning)
-
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' ## TO DO set in docker
 import tensorflow as tf
 from keras import Sequential, metrics
